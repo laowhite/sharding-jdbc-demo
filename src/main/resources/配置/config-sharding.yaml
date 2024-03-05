@@ -1,0 +1,88 @@
+schemaName: sharding_db
+
+dataSources:
+  ds_user:
+    url: jdbc:mysql://192.168.182.156:3307/db_user?serverTimezone=UTC&useSSL=false
+    username: root
+    password: 123456
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+  ds_order0:
+    url: jdbc:mysql://192.168.182.155:3307/db_order?serverTimezone=UTC&useSSL=false
+    username: root
+    password: 123456
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+  ds_order1:
+    url: jdbc:mysql://192.168.182.156:3307/db_order?serverTimezone=UTC&useSSL=false
+    username: root
+    password: 123456
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1 
+
+rules:
+- !SHARDING
+  tables:
+    t_user:
+      actualDataNodes: ds_user.t_user
+
+    t_order:
+      actualDataNodes: ds_order${0..1}.t_order${0..1}
+      databaseStrategy:
+        standard:
+          shardingColumn: user_id
+          shardingAlgorithmName: alg_mod
+      tableStrategy:
+        standard:
+          shardingColumn: order_no
+          shardingAlgorithmName: alg_hash_mod
+      keyGenerateStrategy:
+        column: id
+        keyGeneratorName: snowflake
+    t_order_item:
+      actualDataNodes: ds_order${0..1}.t_order_item${0..1}
+      databaseStrategy:
+        standard:
+          shardingColumn: user_id
+          shardingAlgorithmName: alg_mod
+      tableStrategy:
+        standard:
+          shardingColumn: order_no
+          shardingAlgorithmName: alg_hash_mod
+      keyGenerateStrategy:
+        column: id
+        keyGeneratorName: snowflake
+
+  bindingTables:
+    - t_order,t_order_item
+
+
+  broadcastTables:
+    - t_dict
+
+  shardingAlgorithms:
+    alg_inline_userid:
+      type: INLINE
+      props:
+        algorithm-expression: server-order$->{user_id % 2}
+    alg_mod:
+      type: MOD
+      props:
+        sharding-count: 2
+    alg_hash_mod:
+      type: HASH_MOD
+      props:
+        sharding-count: 2
+  
+  keyGenerators:
+    snowflake:
+      type: SNOWFLAKE
